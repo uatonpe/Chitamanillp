@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="mr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apartment CRM Dashboard</title>
+    <!-- Tailwind CSS for SaaS Look -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js for Graphs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- SweetAlert2 for Beautiful Popups -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        /* Loading Spinner CSS */
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .hidden-section { display: none; }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans">
+
+    <!-- Top Navbar -->
+    <nav class="bg-indigo-600 text-white p-4 shadow-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <h1 class="text-xl font-bold"><i class="fa-solid fa-building mr-2"></i> Apartment CRM</h1>
+            <div class="space-x-4 hidden md:block">
+                <button onclick="showSection('dashboard')" class="hover:text-indigo-200 font-semibold"><i class="fa-solid fa-chart-pie mr-1"></i> Dashboard</button>
+                <button onclick="showSection('add-income')" class="hover:text-indigo-200 font-semibold"><i class="fa-solid fa-plus-circle mr-1"></i> Add Income</button>
+                <button onclick="showSection('add-expense')" class="hover:text-indigo-200 font-semibold"><i class="fa-solid fa-minus-circle mr-1"></i> Add Expense</button>
+            </div>
+            <!-- Mobile Menu Button -->
+            <button class="md:hidden text-white text-2xl" onclick="toggleMobileMenu()"><i class="fa-solid fa-bars"></i></button>
+        </div>
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden md:hidden flex flex-col mt-4 space-y-2 bg-indigo-700 p-4 rounded">
+            <button onclick="showSection('dashboard'); toggleMobileMenu()" class="text-left font-semibold"><i class="fa-solid fa-chart-pie mr-2"></i> Dashboard</button>
+            <button onclick="showSection('add-income'); toggleMobileMenu()" class="text-left font-semibold"><i class="fa-solid fa-plus-circle mr-2"></i> Add Income</button>
+            <button onclick="showSection('add-expense'); toggleMobileMenu()" class="text-left font-semibold"><i class="fa-solid fa-minus-circle mr-2"></i> Add Expense</button>
+        </div>
+    </nav>
+
+    <!-- Global Loader -->
+    <div id="loader" class="text-center mt-20">
+        <div class="loader"></div>
+        <p class="mt-4 text-gray-600 font-semibold">Loading Data from Google Sheets...</p>
+    </div>
+
+    <!-- Main Content Area -->
+    <div id="main-content" class="max-w-7xl mx-auto p-4 hidden-section mt-6">
+
+        <!-- ================= DASHBOARD SECTION ================= -->
+        <div id="dashboard" class="section">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">Financial Overview</h2>
+            
+            <!-- Summary Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-green-500">
+                    <p class="text-gray-500 text-sm font-semibold uppercase">Total Income</p>
+                    <h3 class="text-3xl font-bold text-green-600" id="total-income">₹ 0</h3>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-red-500">
+                    <p class="text-gray-500 text-sm font-semibold uppercase">Total Expenses</p>
+                    <h3 class="text-3xl font-bold text-red-600" id="total-expense">₹ 0</h3>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-blue-500">
+                    <p class="text-gray-500 text-sm font-semibold uppercase">Net Balance</p>
+                    <h3 class="text-3xl font-bold text-blue-600" id="net-balance">₹ 0</h3>
+                </div>
+            </div>
+
+            <!-- Chart Section -->
+            <div class="bg-white p-6 rounded-xl shadow-sm mb-8 max-w-2xl mx-auto">
+                <canvas id="financeChart"></canvas>
+            </div>
+        </div>
+
+        <!-- ================= ADD INCOME SECTION (For Staff/Admin) ================= -->
+        <div id="add-income" class="section hidden-section max-w-lg mx-auto bg-white p-8 rounded-xl shadow-sm">
+            <h2 class="text-2xl font-bold text-green-600 mb-6"><i class="fa-solid fa-arrow-down mr-2"></i>Add Income (उत्पन्न नोंद)</h2>
+            <form id="income-form" onsubmit="submitData(event, 'income')">
+                <div class="mb-4">
+                    <label class="block text-gray-700 font-semibold mb-2">Date (तारीख)</label>
+                    <input type="date" id="inc-date" required class="w-full p-3 border rounded focus:outline-none focus:ring-2 focus:ring-green-400">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 font-semibold mb-2">Category (प्रकार)</label>
+                    <select id="inc-category" required class="w-full p-3 border rounded focus:outline-none focus:ring-2 focus:ring-green-400">
+                        <option value="">Select Category...</option>
+                        <!-- Dynamic Options will load here -->
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 font-semibold mb-2">Flat No. (फ्लॅट क्र.)</label>
+                    <input type="text" id="inc-flat" placeholder="e.g. 101" required class="w-full p-3 border rounded focus:outline-none focus:ring-2 focus:ring-green-400">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 font-semibold mb-2">Customer Name (ग्राहकाचे नाव)</label>
+                    <input type="text" id="inc-customer" placeholder="John Doe" required class="w-full p-3 border rounded focus:outline-none focus:ring-2 focus:ring-green-400">
+                </div>
+                <div class="mb-6">
+                    <label class="block text-gray-700 font-semibold mb-2">Amount (रक्कम ₹)</label>
+                    <input type="number" id="inc-amount" placeholder="50000" required class="w-full p-3 border rounded focus:outline-none focus:ring-2 focus:ring-green-400">
+                </div>
+                <button type="submit" class="w-full bg-green-600 text-white font-bold py-3 rounded hover:bg-green-700 transition duration-300">Submit Income</button>
+            </form>
+        </div>
+
+        <!-- ================= ADD EXPENSE SECTION (For Staff/Admin) ================= -->
+        <div id="add-expense" class="section hidden-section max-w-lg mx-auto bg-white p-8 rounded-xl shadow-sm">
+            <h2 class="text-2xl font-bold text-red-600 mb-6"><i class="fa-solid fa-arrow-up mr-2"></i>Add Expense (खर्च नोंद)</h2>
+            <form id="expense-form" onsubmit="submitData(event, 'expense')">
+                <div class="mb-4">
+                    <label class="block text-gray-700 font-semibold mb-2">Date (तारीख)</label>
+                    <input type="date" id="exp-date" required class="w-full p-3 border rounded focus:outline-none focus:ring-2 focus:ring-red-400">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 font-semibold mb-2">Category (प्रकार)</label>
+                    <select id="exp-category" required class="w-full p-3 border rounded focus:outline-none focus:ring-2 focus:ring-red-400">
+                        <option value="">Select Category...</option>
+                        <!-- Dynamic Options will load here -->
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 font-semibold mb-2">Description (तपशील)</label>
+                    <input type="text" id="exp-desc" placeholder="e.g. Cement bags from shop" required class="w-full p-3 border rounded focus:outline-none focus:ring-2 focus:ring-red-400">
+                </div>
+                <div class="mb-6">
+                    <label class="block text-gray-700 font-semibold mb-2">Amount (रक्कम ₹)</label>
+                    <input type="number" id="exp-amount" placeholder="10000" required class="w-full p-3 border rounded focus:outline-none focus:ring-2 focus:ring-red-400">
+                </div>
+                <button type="submit" class="w-full bg-red-600 text-white font-bold py-3 rounded hover:bg-red-700 transition duration-300">Submit Expense</button>
+            </form>
+        </div>
+
+    </div>
+
+    <!-- Javascript Logic -->
+    <script>
+        // ⚠️⚠️⚠️ खालील ओळीत तुमच्या गुगल स्क्रिप्टची (Web App URL) लिंक टाका ⚠️⚠️⚠️
+        const API_URL = "https://script.google.com/macros/s/AKfycbzMMg8wXbLG8oY3DOUN0CmDGGLyNQ-RuJe2BVsgbjx3oreLGxwgXo_Gwo7Ub43IKPpL/exec";
+
+        let myChart; // Chart instance
+
+        // 1. Fetch Data on Load
+        window.onload = async function() {
+            // Set today's date in forms by default
+            document.getElementById('inc-date').valueAsDate = new Date();
+            document.getElementById('exp-date').valueAsDate = new Date();
+
+            try {
+                const response = await fetch(API_URL);
+                const data = await response.json();
+                
+                // Populate Dropdowns dynamically from Settings tab
+                populateDropdowns(data.categories.incomeCats, 'inc-category');
+                populateDropdowns(data.categories.expenseCats, 'exp-category');
+                
+                // Calculate and update Dashboard Dashboard
+                updateDashboard(data.income, data.expenses);
+
+                // Hide loader and show content
+                document.getElementById('loader').style.display = 'none';
+                document.getElementById('main-content').classList.remove('hidden-section');
+                showSection('dashboard');
+
+            } catch (error) {
+                console.error("Error fetching data:", error);
+                Swal.fire("Error!", "Could not load data. Check API URL.", "error");
+            }
+        };
+
+        // 2. Populate Dropdowns (Select Box)
+        function populateDropdowns(categories, elementId) {
+            const select = document.getElementById(elementId);
+            categories.forEach(cat => {
+                let option = document.createElement("option");
+                option.value = cat;
+                option.text = cat;
+                select.appendChild(option);
+            });
+        }
+
+        // 3. Update Dashboard Numbers and Chart
+        function updateDashboard(incomeData, expenseData) {
+            let totalIncome = 0;
+            let totalExpense = 0;
+
+            // Income data array: [Date, Category, FlatNo, CustomerName, Amount]
+            incomeData.forEach(row => { totalIncome += parseFloat(row[4] || 0); });
+            
+            // Expense data array: [Date, Category, Description, Amount]
+            expenseData.forEach(row => { totalExpense += parseFloat(row[3] || 0); });
+
+            let balance = totalIncome - totalExpense;
+
+            // Update Text
+            document.getElementById('total-income').innerText = "₹ " + totalIncome.toLocaleString('en-IN');
+            document.getElementById('total-expense').innerText = "₹ " + totalExpense.toLocaleString('en-IN');
+            document.getElementById('net-balance').innerText = "₹ " + balance.toLocaleString('en-IN');
+
+            // Update Chart
+            const ctx = document.getElementById('financeChart').getContext('2d');
+            if(myChart) myChart.destroy(); // Clear old chart
+            myChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Income (उत्पन्न)', 'Expenses (खर्च)'],
+                    datasets: [{
+                        data: [totalIncome, totalExpense],
+                        backgroundColor: ['#22c55e', '#ef4444'], // Green & Red
+                        hoverOffset: 4
+                    }]
+                },
+                options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+            });
+        }
+
+        // 4. Submit Data to Google Sheet
+        async function submitData(event, type) {
+            event.preventDefault(); // Prevent page reload
+            
+            // Show loading alert
+            Swal.fire({ title: 'Saving Data...', text: 'Please wait', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
+
+            let payload = {};
+
+            if(type === 'income') {
+                payload = {
+                    type: "income",
+                    date: document.getElementById('inc-date').value,
+                    category: document.getElementById('inc-category').value,
+                    flatNo: document.getElementById('inc-flat').value,
+                    customer: document.getElementById('inc-customer').value,
+                    amount: document.getElementById('inc-amount').value
+                };
+            } else if (type === 'expense') {
+                payload = {
+                    type: "expense",
+                    date: document.getElementById('exp-date').value,
+                    category: document.getElementById('exp-category').value,
+                    description: document.getElementById('exp-desc').value,
+                    amount: document.getElementById('exp-amount').value
+                };
+            }
+
+            try {
+                await fetch(API_URL, {
+                    method: 'POST',
+                    mode: 'no-cors', // Important to avoid CORS block from Google
+                    body: JSON.stringify(payload)
+                });
+                
+                // Show Success Message
+                Swal.fire("Success!", "Data saved successfully to Google Sheet!", "success").then(() => {
+                    // Reset Form and reload page to fetch new data
+                    document.getElementById(type + '-form').reset();
+                    location.reload(); 
+                });
+
+            } catch (error) {
+                Swal.fire("Error!", "Failed to save data.", "error");
+            }
+        }
+
+        // 5. Navigation Logic (Switching Tabs)
+        function showSection(sectionId) {
+            const sections = document.querySelectorAll('.section');
+            sections.forEach(sec => sec.classList.add('hidden-section'));
+            document.getElementById(sectionId).classList.remove('hidden-section');
+        }
+
+        function toggleMobileMenu() {
+            document.getElementById('mobile-menu').classList.toggle('hidden');
+        }
+    </script>
+</body>
+</html>
