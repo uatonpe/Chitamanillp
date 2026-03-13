@@ -3,277 +3,621 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Apartment CRM Dashboard</title>
-    <!-- Tailwind CSS for SaaS Look -->
+    <title>स्मार्ट प्रोप-ईआरपी (Smart Prop-ERP)</title>
+    
+    <!-- External Libraries -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Chart.js for Graphs -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- SweetAlert2 for Beautiful Popups -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <!-- FontAwesome for Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     
     <style>
-        /* Loading Spinner CSS */
-        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: auto; }
+        @import url('https://fonts.googleapis.com/css2?family=Mukta:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap');
+        
+        :root {
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --primary-text: #2c3e50;
+            --primary-color: #3498db;
+            --dark-blue: #1e293b;
+            --green: #10b981;
+            --red: #ef4444;
+            --orange: #f59e0b;
+            --shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+            --transition: all 0.3s ease;
+        }
+
+        body { font-family: 'Mukta', 'Poppins', sans-serif; background-color: var(--bg-color); color: var(--primary-text); margin: 0; }
+        
+        /* Smooth Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        .hidden-section { display: none !important; }
+
+        /* KPI Cards Styling */
+        .kpi-card {
+            background: var(--card-bg); padding: 1.5rem; border-radius: 16px; box-shadow: var(--shadow);
+            display: flex; align-items: center; gap: 1.25rem; cursor: pointer; transition: var(--transition);
+            border: 1px solid rgba(0,0,0,0.03); position: relative; overflow: hidden;
+        }
+        .kpi-card:hover { transform: translateY(-5px); box-shadow: 0 15px 30px rgba(0,0,0,0.1); }
+        .kpi-card::after { content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 4px; background: currentColor; opacity: 0.8; }
+        .kpi-card .icon { font-size: 2rem; min-width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; border-radius: 12px; background: #f8f9fa; transition: var(--transition); }
+        .kpi-card:hover .icon { background: currentColor; color: white !important; }
+        .kpi-card .value { font-size: 1.8rem; font-weight: 700; line-height: 1.2; margin-bottom: 2px; font-family: 'Poppins', sans-serif; }
+        .kpi-card .label { font-size: 0.95rem; color: #64748b; font-weight: 600; }
+
+        /* KPI Colors */
+        .kpi-blue { color: var(--primary-color); } .kpi-green { color: var(--green); }
+        .kpi-red { color: var(--red); } .kpi-orange { color: var(--orange); }
+        .kpi-dark { color: var(--dark-blue); } .kpi-purple { color: #8b5cf6; }
+
+        /* Building View Grid */
+        #building-view { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 12px; padding: 15px; background-color: #f8fafc; border-radius: 12px; border: 1px dashed #cbd5e1; }
+        .flat-block { 
+            aspect-ratio: 1/1; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; 
+            font-weight: 700; color: white; cursor: pointer; transition: var(--transition); position: relative; box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+        }
+        .flat-block:hover { transform: scale(1.1); z-index: 10; box-shadow: 0 12px 20px rgba(0,0,0,0.2); }
+        .status-Sold { background: linear-gradient(135deg, var(--green), #059669); }
+        .status-Available { background: linear-gradient(135deg, var(--orange), #d97706); }
+        .flat-block .flat-label { font-size: 0.75rem; opacity: 0.9; font-weight: 500; letter-spacing: 1px; }
+
+        /* Custom Tooltip */
+        .flat-block .tooltip { visibility: hidden; opacity: 0; position: absolute; bottom: 120%; left: 50%; transform: translateX(-50%); padding: 12px; background: rgba(15, 23, 42, 0.95); color: white; border-radius: 8px; font-size: 0.9rem; white-space: nowrap; transition: var(--transition); pointer-events: none; z-index: 100; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); text-align: left; }
+        .flat-block:hover .tooltip { visibility: visible; opacity: 1; bottom: 110%; }
+
+        /* Modal Custom CSS */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.7); display: none; justify-content: center; align-items: center; z-index: 2000; padding: 1rem; backdrop-filter: blur(4px); }
+        .modal-content { background: white; border-radius: 20px; padding: 2rem; width: 100%; max-width: 1000px; max-height: 85vh; display: flex; flex-direction: column; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); animation: zoomIn 0.3s ease; }
+        @keyframes zoomIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+        /* Loader */
+        .loader-wrapper { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid var(--primary-color); border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .hidden-section { display: none; }
     </style>
 </head>
-<body class="bg-slate-100 text-slate-800 font-sans">
+<body class="text-slate-800">
 
-    <!-- Top Navbar -->
-    <nav class="bg-indigo-600 text-white p-4 shadow-md sticky top-0 z-50">
+    <!-- Global Loader -->
+    <div id="loader" class="loader-wrapper">
+        <div class="loader mb-4"></div>
+        <h2 class="text-xl font-bold text-slate-700">माहिती सिंक होत आहे...</h2>
+        <p class="text-slate-500">कृपया प्रतीक्षा करा</p>
+    </div>
+
+    <!-- Header Navigation -->
+    <nav class="bg-slate-900 text-white p-4 shadow-lg sticky top-0 z-50">
         <div class="max-w-7xl mx-auto flex justify-between items-center">
-            <h1 class="text-xl font-bold"><i class="fa-solid fa-building mr-2"></i> Apartment CRM</h1>
-            <div class="space-x-4 hidden md:block">
-                <button onclick="showSection('dashboard')" class="hover:text-indigo-200 font-semibold"><i class="fa-solid fa-chart-pie mr-1"></i> Dashboard</button>
-                <button onclick="showSection('add-income')" class="hover:text-indigo-200 font-semibold"><i class="fa-solid fa-plus-circle mr-1"></i> Add Income</button>
-                <button onclick="showSection('add-expense')" class="hover:text-indigo-200 font-semibold"><i class="fa-solid fa-minus-circle mr-1"></i> Add Expense</button>
+            <h1 class="text-2xl font-bold tracking-wide"><i class="fa-solid fa-city text-blue-400 mr-2"></i> स्मार्ट प्रोप-ईआरपी</h1>
+            <div class="space-x-6 hidden md:flex font-semibold text-lg">
+                <button onclick="switchTab('dashboard')" class="hover:text-blue-400 transition"><i class="fa-solid fa-chart-pie mr-1"></i> मुख्य डॅशबोर्ड</button>
+                <button onclick="switchTab('add-income')" class="hover:text-green-400 transition"><i class="fa-solid fa-hand-holding-dollar mr-1"></i> उत्पन्न नोंद</button>
+                <button onclick="switchTab('add-expense')" class="hover:text-red-400 transition"><i class="fa-solid fa-wallet mr-1"></i> खर्च नोंद</button>
             </div>
-            <!-- Mobile Menu Button -->
-            <button class="md:hidden text-white text-2xl" onclick="toggleMobileMenu()"><i class="fa-solid fa-bars"></i></button>
+            <button class="md:hidden text-2xl" onclick="document.getElementById('mobile-menu').classList.toggle('hidden')"><i class="fa-solid fa-bars"></i></button>
         </div>
         <!-- Mobile Menu -->
-        <div id="mobile-menu" class="hidden md:hidden flex flex-col mt-4 space-y-2 bg-indigo-700 p-4 rounded">
-            <button onclick="showSection('dashboard'); toggleMobileMenu()" class="text-left font-semibold"><i class="fa-solid fa-chart-pie mr-2"></i> Dashboard</button>
-            <button onclick="showSection('add-income'); toggleMobileMenu()" class="text-left font-semibold"><i class="fa-solid fa-plus-circle mr-2"></i> Add Income</button>
-            <button onclick="showSection('add-expense'); toggleMobileMenu()" class="text-left font-semibold"><i class="fa-solid fa-minus-circle mr-2"></i> Add Expense</button>
+        <div id="mobile-menu" class="hidden md:hidden flex flex-col mt-4 space-y-3 bg-slate-800 p-4 rounded-lg">
+            <button onclick="switchTab('dashboard')" class="text-left font-semibold text-lg"><i class="fa-solid fa-chart-pie mr-2"></i> मुख्य डॅशबोर्ड</button>
+            <button onclick="switchTab('add-income')" class="text-left font-semibold text-lg text-green-400"><i class="fa-solid fa-hand-holding-dollar mr-2"></i> उत्पन्न नोंद</button>
+            <button onclick="switchTab('add-expense')" class="text-left font-semibold text-lg text-red-400"><i class="fa-solid fa-wallet mr-2"></i> खर्च नोंद</button>
         </div>
     </nav>
 
-    <!-- Global Loader -->
-    <div id="loader" class="text-center mt-20">
-        <div class="loader"></div>
-        <p class="mt-4 text-gray-600 font-semibold">Loading Data from Google Sheets...</p>
-    </div>
+    <div class="max-w-[1600px] mx-auto p-4 mt-4">
 
-    <!-- Main Content Area -->
-    <div id="main-content" class="max-w-7xl mx-auto p-4 hidden-section mt-6">
-
-        <!-- ================= DASHBOARD SECTION ================= -->
-        <div id="dashboard" class="section">
-            <h2 class="text-2xl font-bold text-gray-800 mb-6">Financial Overview</h2>
+        <!-- ================= 1. DASHBOARD SECTION ================= -->
+        <div id="dashboard" class="tab-content">
             
-            <!-- Summary Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-green-500">
-                    <p class="text-gray-500 text-sm font-semibold uppercase">Total Income</p>
-                    <h3 class="text-3xl font-bold text-green-600" id="total-income">₹ 0</h3>
+            <!-- Top KPI Cards (Clickable for Deep Dive) -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="kpi-card kpi-dark" onclick="openModal('flats')">
+                    <div class="icon"><i class="fa-solid fa-building"></i></div>
+                    <div><div class="value" id="kpi-total-flats">0</div><div class="label">एकूण फ्लॅट्स</div></div>
                 </div>
-                <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-red-500">
-                    <p class="text-gray-500 text-sm font-semibold uppercase">Total Expenses</p>
-                    <h3 class="text-3xl font-bold text-red-600" id="total-expense">₹ 0</h3>
+                <div class="kpi-card kpi-green" onclick="openModal('sold')">
+                    <div class="icon"><i class="fa-solid fa-key"></i></div>
+                    <div><div class="value" id="kpi-sold">0</div><div class="label">विक्री झालेले फ्लॅट्स</div></div>
                 </div>
-                <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-blue-500">
-                    <p class="text-gray-500 text-sm font-semibold uppercase">Net Balance</p>
-                    <h3 class="text-3xl font-bold text-blue-600" id="net-balance">₹ 0</h3>
+                <div class="kpi-card kpi-orange" onclick="openModal('available')">
+                    <div class="icon"><i class="fa-solid fa-door-open"></i></div>
+                    <div><div class="value" id="kpi-avail">0</div><div class="label">उपलब्ध फ्लॅट्स</div></div>
+                </div>
+                <div class="kpi-card kpi-purple" onclick="openModal('flats')">
+                    <div class="icon"><i class="fa-solid fa-sack-dollar"></i></div>
+                    <div><div class="value" id="kpi-expected-value">₹ 0</div><div class="label">प्रकल्पाची एकूण किंमत</div></div>
+                </div>
+                
+                <div class="kpi-card kpi-green" onclick="openModal('income')">
+                    <div class="icon"><i class="fa-solid fa-money-bill-trend-up"></i></div>
+                    <div><div class="value" id="kpi-collected">₹ 0</div><div class="label">एकूण जमा रक्कम (उत्पन्न)</div></div>
+                </div>
+                <div class="kpi-card kpi-orange" onclick="openModal('pending')">
+                    <div class="icon"><i class="fa-solid fa-clock-rotate-left"></i></div>
+                    <div><div class="value" id="kpi-pending">₹ 0</div><div class="label">येणे बाकी (शिल्लक)</div></div>
+                </div>
+                <div class="kpi-card kpi-red" onclick="openModal('expense')">
+                    <div class="icon"><i class="fa-solid fa-money-bill-transfer"></i></div>
+                    <div><div class="value" id="kpi-expense">₹ 0</div><div class="label">एकूण झालेला खर्च</div></div>
+                </div>
+                <div class="kpi-card kpi-blue" onclick="openModal('roi')">
+                    <div class="icon"><i class="fa-solid fa-vault"></i></div>
+                    <div><div class="value" id="kpi-balance">₹ 0</div><div class="label">निव्वळ शिल्लक (कॅश इन हँड)</div></div>
                 </div>
             </div>
 
-            <!-- Chart Section -->
-            <div class="bg-white p-6 rounded-xl shadow-sm mb-8 max-w-2xl mx-auto">
-                <canvas id="financeChart"></canvas>
+            <!-- Middle Section: Building Grid & Charts -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                
+                <!-- Building Layout View -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 lg:col-span-1">
+                    <h3 class="text-xl font-bold mb-4 text-slate-800"><i class="fa-solid fa-layer-group text-blue-500 mr-2"></i> बिल्डिंग स्ट्रक्चर व्ह्यू</h3>
+                    <div id="building-view" class="h-[350px] overflow-y-auto">
+                        <!-- Flats injected via JS -->
+                    </div>
+                    <div class="flex gap-4 mt-4 justify-center text-sm font-semibold">
+                        <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-emerald-500"></span> विक्री झाली</span>
+                        <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-amber-500"></span> उपलब्ध</span>
+                    </div>
+                </div>
+
+                <!-- Sales Chart -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                    <h3 class="text-xl font-bold mb-4 text-slate-800"><i class="fa-solid fa-chart-pie text-blue-500 mr-2"></i> विक्री स्थिती (Status)</h3>
+                    <div class="relative h-[300px] w-full flex justify-center"><canvas id="salesChart"></canvas></div>
+                </div>
+
+                <!-- Cashflow Chart -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                    <h3 class="text-xl font-bold mb-4 text-slate-800"><i class="fa-solid fa-chart-column text-blue-500 mr-2"></i> कॅश फ्लो (उत्पन्न वि. खर्च)</h3>
+                    <div class="relative h-[300px] w-full flex justify-center"><canvas id="cashFlowChart"></canvas></div>
+                </div>
+            </div>
+
+            <!-- Bottom Section: Master Searchable Inventory Table -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                    <h3 class="text-2xl font-bold text-slate-800"><i class="fa-solid fa-list-check text-blue-500 mr-2"></i> मास्टर इन्व्हेंटरी रिपोर्ट</h3>
+                    <div class="relative w-full md:w-96">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-3.5 text-slate-400"></i>
+                        <input type="text" id="searchInput" onkeyup="searchTable()" placeholder="फ्लॅट नंबर किंवा नाव शोधा..." class="w-full pl-10 pr-4 py-2.5 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 bg-slate-50 transition">
+                    </div>
+                </div>
+                <div class="overflow-x-auto rounded-xl border border-slate-200">
+                    <table class="w-full text-left border-collapse" id="masterTable">
+                        <thead>
+                            <tr class="bg-slate-100 text-slate-700 text-lg">
+                                <th class="p-4 border-b-2">फ्लॅट क्र.</th>
+                                <th class="p-4 border-b-2">स्थिती</th>
+                                <th class="p-4 border-b-2">ग्राहकाचे नाव</th>
+                                <th class="p-4 border-b-2 text-right">ठरलेली किंमत</th>
+                                <th class="p-4 border-b-2 text-right">जमा रक्कम</th>
+                                <th class="p-4 border-b-2 text-right">शिल्लक रक्कम</th>
+                            </tr>
+                        </thead>
+                        <tbody id="master-table-body" class="text-md divide-y divide-slate-100">
+                            <!-- Rows injected via JS -->
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
-        <!-- ================= ADD INCOME SECTION (For Staff/Admin) ================= -->
-        <div id="add-income" class="section hidden-section max-w-lg mx-auto bg-white p-8 rounded-xl shadow-sm">
-            <h2 class="text-2xl font-bold text-green-600 mb-6"><i class="fa-solid fa-arrow-down mr-2"></i>Add Income (उत्पन्न नोंद)</h2>
+        <!-- ================= 2. ADD INCOME FORM (उत्पन्न) ================= -->
+        <div id="add-income" class="tab-content hidden-section max-w-2xl mx-auto bg-white p-8 rounded-2xl shadow-xl border-t-8 border-green-500">
+            <h2 class="text-3xl font-bold text-slate-800 mb-2"><i class="fa-solid fa-hand-holding-dollar text-green-500 mr-2"></i> उत्पन्न नोंद करा</h2>
+            <p class="text-slate-500 mb-6 font-semibold">ग्राहकाकडून आलेले पेमेंट येथे नोंदवा.</p>
+            
             <form id="income-form" onsubmit="submitData(event, 'income')">
-                <div class="mb-4">
-                    <label class="block text-gray-700 font-semibold mb-2">Date (तारीख)</label>
-                    <input type="date" id="inc-date" required class="w-full p-3 border rounded focus:outline-none focus:ring-2 focus:ring-green-400">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-slate-700 font-bold mb-2 text-lg">तारीख <span class="text-red-500">*</span></label>
+                        <input type="date" id="inc-date" required class="w-full p-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-green-500 text-lg">
+                    </div>
+                    <div>
+                        <label class="block text-slate-700 font-bold mb-2 text-lg">उत्पन्नाचा प्रकार <span class="text-red-500">*</span></label>
+                        <select id="inc-category" required class="w-full p-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-green-500 text-lg">
+                            <option value="">निवडा...</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-slate-700 font-bold mb-2 text-lg">फ्लॅट नंबर (असल्यास)</label>
+                        <input type="text" id="inc-flat" placeholder="उदा. 101" class="w-full p-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-green-500 text-lg">
+                    </div>
+                    <div>
+                        <label class="block text-slate-700 font-bold mb-2 text-lg">ग्राहकाचे नाव <span class="text-red-500">*</span></label>
+                        <input type="text" id="inc-customer" required placeholder="व्यक्तीचे नाव टाका" class="w-full p-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-green-500 text-lg">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-slate-700 font-bold mb-2 text-lg">रक्कम (₹) <span class="text-red-500">*</span></label>
+                        <input type="number" id="inc-amount" required placeholder="50000" class="w-full p-4 border-2 border-green-200 bg-green-50 rounded-xl focus:outline-none focus:border-green-500 font-bold text-2xl text-green-700">
+                    </div>
                 </div>
-                <div class="mb-4">
-                    <label class="block text-gray-700 font-semibold mb-2">Category (प्रकार)</label>
-                    <select id="inc-category" required class="w-full p-3 border rounded focus:outline-none focus:ring-2 focus:ring-green-400">
-                        <option value="">Select Category...</option>
-                        <!-- Dynamic Options will load here -->
-                    </select>
-                </div>
-                <div class="mb-4">
-                    <label class="block text-gray-700 font-semibold mb-2">Flat No. (फ्लॅट क्र.)</label>
-                    <input type="text" id="inc-flat" placeholder="e.g. 101" required class="w-full p-3 border rounded focus:outline-none focus:ring-2 focus:ring-green-400">
-                </div>
-                <div class="mb-4">
-                    <label class="block text-gray-700 font-semibold mb-2">Customer Name (ग्राहकाचे नाव)</label>
-                    <input type="text" id="inc-customer" placeholder="John Doe" required class="w-full p-3 border rounded focus:outline-none focus:ring-2 focus:ring-green-400">
-                </div>
-                <div class="mb-6">
-                    <label class="block text-gray-700 font-semibold mb-2">Amount (रक्कम ₹)</label>
-                    <input type="number" id="inc-amount" placeholder="50000" required class="w-full p-3 border rounded focus:outline-none focus:ring-2 focus:ring-green-400">
-                </div>
-                <button type="submit" class="w-full bg-green-600 text-white font-bold py-3 rounded hover:bg-green-700 transition duration-300">Submit Income</button>
+                <button type="submit" class="mt-8 w-full bg-green-600 text-white font-bold text-xl py-4 rounded-xl hover:bg-green-700 shadow-lg hover:shadow-xl transition flex justify-center items-center gap-2"><i class="fa-solid fa-cloud-arrow-up"></i> माहिती सेव्ह करा</button>
             </form>
         </div>
 
-        <!-- ================= ADD EXPENSE SECTION (For Staff/Admin) ================= -->
-        <div id="add-expense" class="section hidden-section max-w-lg mx-auto bg-white p-8 rounded-xl shadow-sm">
-            <h2 class="text-2xl font-bold text-red-600 mb-6"><i class="fa-solid fa-arrow-up mr-2"></i>Add Expense (खर्च नोंद)</h2>
+        <!-- ================= 3. ADD EXPENSE FORM (खर्च) ================= -->
+        <div id="add-expense" class="tab-content hidden-section max-w-2xl mx-auto bg-white p-8 rounded-2xl shadow-xl border-t-8 border-red-500">
+            <h2 class="text-3xl font-bold text-slate-800 mb-2"><i class="fa-solid fa-wallet text-red-500 mr-2"></i> खर्च नोंद करा</h2>
+            <p class="text-slate-500 mb-6 font-semibold">बांधकाम, मजुरी व इतर दैनंदिन खर्च येथे नोंदवा.</p>
+            
             <form id="expense-form" onsubmit="submitData(event, 'expense')">
-                <div class="mb-4">
-                    <label class="block text-gray-700 font-semibold mb-2">Date (तारीख)</label>
-                    <input type="date" id="exp-date" required class="w-full p-3 border rounded focus:outline-none focus:ring-2 focus:ring-red-400">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-slate-700 font-bold mb-2 text-lg">तारीख <span class="text-red-500">*</span></label>
+                        <input type="date" id="exp-date" required class="w-full p-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-red-500 text-lg">
+                    </div>
+                    <div>
+                        <label class="block text-slate-700 font-bold mb-2 text-lg">खर्चाचा प्रकार <span class="text-red-500">*</span></label>
+                        <select id="exp-category" required class="w-full p-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-red-500 text-lg">
+                            <option value="">निवडा...</option>
+                        </select>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-slate-700 font-bold mb-2 text-lg">तपशील (Description) <span class="text-red-500">*</span></label>
+                        <input type="text" id="exp-desc" required placeholder="उदा. शर्मा ट्रेडर्स कडून १०० सिमेंट गोण्या" class="w-full p-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-red-500 text-lg">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-slate-700 font-bold mb-2 text-lg">रक्कम (₹) <span class="text-red-500">*</span></label>
+                        <input type="number" id="exp-amount" required placeholder="10000" class="w-full p-4 border-2 border-red-200 bg-red-50 rounded-xl focus:outline-none focus:border-red-500 font-bold text-2xl text-red-700">
+                    </div>
                 </div>
-                <div class="mb-4">
-                    <label class="block text-gray-700 font-semibold mb-2">Category (प्रकार)</label>
-                    <select id="exp-category" required class="w-full p-3 border rounded focus:outline-none focus:ring-2 focus:ring-red-400">
-                        <option value="">Select Category...</option>
-                        <!-- Dynamic Options will load here -->
-                    </select>
-                </div>
-                <div class="mb-4">
-                    <label class="block text-gray-700 font-semibold mb-2">Description (तपशील)</label>
-                    <input type="text" id="exp-desc" placeholder="e.g. Cement bags from shop" required class="w-full p-3 border rounded focus:outline-none focus:ring-2 focus:ring-red-400">
-                </div>
-                <div class="mb-6">
-                    <label class="block text-gray-700 font-semibold mb-2">Amount (रक्कम ₹)</label>
-                    <input type="number" id="exp-amount" placeholder="10000" required class="w-full p-3 border rounded focus:outline-none focus:ring-2 focus:ring-red-400">
-                </div>
-                <button type="submit" class="w-full bg-red-600 text-white font-bold py-3 rounded hover:bg-red-700 transition duration-300">Submit Expense</button>
+                <button type="submit" class="mt-8 w-full bg-red-600 text-white font-bold text-xl py-4 rounded-xl hover:bg-red-700 shadow-lg hover:shadow-xl transition flex justify-center items-center gap-2"><i class="fa-solid fa-cloud-arrow-up"></i> माहिती सेव्ह करा</button>
             </form>
         </div>
 
     </div>
 
-    <!-- Javascript Logic -->
+    <!-- ================= DRILL-DOWN MODAL (तपशील पाहण्यासाठी) ================= -->
+    <div id="detailsModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-4 pb-4 border-b-2 border-slate-100">
+                <h2 id="modal-title" class="text-2xl font-bold text-slate-800"><i class="fa-solid fa-table-list mr-2 text-blue-500"></i> सविस्तर माहिती</h2>
+                <button onclick="closeModal()" class="w-10 h-10 rounded-full bg-slate-100 hover:bg-red-500 hover:text-white transition text-slate-600 text-xl"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="overflow-y-auto max-h-[60vh] pr-2">
+                <table class="w-full text-left border-collapse">
+                    <thead id="modal-thead" class="sticky top-0 bg-white shadow-sm text-slate-600">
+                        <!-- Headings injected -->
+                    </thead>
+                    <tbody id="modal-tbody" class="divide-y divide-slate-100 text-lg">
+                        <!-- Data injected -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= JAVASCRIPT LOGIC ================= -->
     <script>
-        // ⚠️⚠️⚠️ खालील ओळीत तुमच्या गुगल स्क्रिप्टची (Web App URL) लिंक टाका ⚠️⚠️⚠️
-        const API_URL = "https://script.google.com/macros/s/AKfycbzMMg8wXbLG8oY3DOUN0CmDGGLyNQ-RuJe2BVsgbjx3oreLGxwgXo_Gwo7Ub43IKPpL/exec";
+        // ⚠️⚠️⚠️ येथे तुमची Google Apps Script URL टाका ⚠️⚠️⚠️
+        const API_URL = "https://script.google.com/macros/s/AKfycbyz5txxMQmx6ZY_YzK_6LlWtCem6tdptOFpOlZr9wa6CSsX3GxbReqigmXOF1vfBYX2/exec"; 
 
-        let myChart; // Chart instance
+        // Global Data Variables
+        let systemData = { expenses: [], income: [], flats: [] };
+        let processedFlats = []; // Flat master joined with income
+        let charts = {};
 
-        // 1. Fetch Data on Load
+        // 1. Initialize App
         window.onload = async function() {
-            // Set today's date in forms by default
             document.getElementById('inc-date').valueAsDate = new Date();
             document.getElementById('exp-date').valueAsDate = new Date();
+            await fetchData();
+        };
 
+        // 2. Tab Navigation
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden-section'));
+            document.getElementById(tabId).classList.remove('hidden-section');
+            document.getElementById('mobile-menu').classList.add('hidden'); // hide mobile menu
+        }
+
+        // 3. Number Formatting (Indian System)
+        function formatMoney(num) {
+            return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(num || 0);
+        }
+
+        // 4. Fetch Data from Google Sheets API
+        async function fetchData() {
             try {
                 const response = await fetch(API_URL);
                 const data = await response.json();
+                systemData = data;
                 
-                // Populate Dropdowns dynamically from Settings tab
-                populateDropdowns(data.categories.incomeCats, 'inc-category');
-                populateDropdowns(data.categories.expenseCats, 'exp-category');
-                
-                // Calculate and update Dashboard Dashboard
-                updateDashboard(data.income, data.expenses);
+                // Populate Dropdowns
+                populateSelect('inc-category', data.categories.incomeCats);
+                populateSelect('exp-category', data.categories.expenseCats);
 
-                // Hide loader and show content
+                // Process Data
+                processDashboardData();
+                
+                // Hide Loader
                 document.getElementById('loader').style.display = 'none';
-                document.getElementById('main-content').classList.remove('hidden-section');
-                showSection('dashboard');
-
             } catch (error) {
                 console.error("Error fetching data:", error);
-                Swal.fire("Error!", "Could not load data. Check API URL.", "error");
+                Swal.fire('त्रुटी!', 'सर्व्हरवरून माहिती घेण्यास अडचण आली. कृपया URL तपासा.', 'error');
             }
-        };
+        }
 
-        // 2. Populate Dropdowns (Select Box)
-        function populateDropdowns(categories, elementId) {
+        function populateSelect(elementId, optionsArr) {
             const select = document.getElementById(elementId);
-            categories.forEach(cat => {
-                let option = document.createElement("option");
-                option.value = cat;
-                option.text = cat;
+            optionsArr.forEach(opt => {
+                let option = document.createElement('option');
+                option.value = opt; option.text = opt;
                 select.appendChild(option);
             });
         }
 
-        // 3. Update Dashboard Numbers and Chart
-        function updateDashboard(incomeData, expenseData) {
-            let totalIncome = 0;
-            let totalExpense = 0;
+        // 5. Process Data & Calculate KPIs
+        function processDashboardData() {
+            let totalExpenses = 0;
+            let totalIncomeCollected = 0;
+            let totalProjectExpectedValue = 0;
+            let totalPending = 0;
+            let soldCount = 0;
+            let availCount = 0;
 
-            // Income data array: [Date, Category, FlatNo, CustomerName, Amount]
-            incomeData.forEach(row => { totalIncome += parseFloat(row[4] || 0); });
+            // Calculate total expenses
+            systemData.expenses.forEach(row => { totalExpenses += Number(row[3] || 0); });
+
+            // Process Flats & calculate individual income
+            processedFlats = systemData.flats.map(flatRow => {
+                let flatNo = String(flatRow[0]);
+                let status = flatRow[1] || 'Available'; // Default to available
+                let customer = flatRow[2] || '-';
+                let totalValue = Number(flatRow[3] || 0);
+
+                // Find all income for this flat
+                let collectedForFlat = 0;
+                systemData.income.forEach(incRow => {
+                    if(String(incRow[2]) === flatNo) {
+                        collectedForFlat += Number(incRow[4] || 0);
+                        totalIncomeCollected += Number(incRow[4] || 0); // Add to grand total income
+                    }
+                });
+
+                // Add income that has no flat number attached (e.g. general parking)
+                
+                let pending = totalValue - collectedForFlat;
+                if(pending < 0) pending = 0; // Prevent negative pending
+
+                // Update Counters
+                totalProjectExpectedValue += totalValue;
+                if(status.toLowerCase().includes('sold') || status === 'विक्री झाली') {
+                    soldCount++;
+                    totalPending += pending;
+                } else {
+                    availCount++;
+                }
+
+                return { flatNo, status, customer, totalValue, collectedForFlat, pending };
+            });
+
+            // Calculate extra income not tied to flats
+            systemData.income.forEach(incRow => {
+                let flatNo = String(incRow[2]);
+                if(!flatNo || flatNo.trim() === "") {
+                    totalIncomeCollected += Number(incRow[4] || 0);
+                }
+            });
+
+            let netBalance = totalIncomeCollected - totalExpenses;
+
+            // Update DOM KPIs
+            document.getElementById('kpi-total-flats').innerText = processedFlats.length;
+            document.getElementById('kpi-sold').innerText = soldCount;
+            document.getElementById('kpi-avail').innerText = availCount;
+            document.getElementById('kpi-expected-value').innerText = formatMoney(totalProjectExpectedValue);
+            document.getElementById('kpi-collected').innerText = formatMoney(totalIncomeCollected);
+            document.getElementById('kpi-pending').innerText = formatMoney(totalPending);
+            document.getElementById('kpi-expense').innerText = formatMoney(totalExpenses);
+            document.getElementById('kpi-balance').innerText = formatMoney(netBalance);
+
+            // Render Views
+            renderBuildingView();
+            renderMasterTable();
+            renderCharts(soldCount, availCount, totalIncomeCollected, totalExpenses);
+        }
+
+        // 6. Render Building Grid View
+        function renderBuildingView() {
+            const container = document.getElementById('building-view');
+            container.innerHTML = '';
             
-            // Expense data array: [Date, Category, Description, Amount]
-            expenseData.forEach(row => { totalExpense += parseFloat(row[3] || 0); });
-
-            let balance = totalIncome - totalExpense;
-
-            // Update Text
-            document.getElementById('total-income').innerText = "₹ " + totalIncome.toLocaleString('en-IN');
-            document.getElementById('total-expense').innerText = "₹ " + totalExpense.toLocaleString('en-IN');
-            document.getElementById('net-balance').innerText = "₹ " + balance.toLocaleString('en-IN');
-
-            // Update Chart
-            const ctx = document.getElementById('financeChart').getContext('2d');
-            if(myChart) myChart.destroy(); // Clear old chart
-            myChart = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Income (उत्पन्न)', 'Expenses (खर्च)'],
-                    datasets: [{
-                        data: [totalIncome, totalExpense],
-                        backgroundColor: ['#22c55e', '#ef4444'], // Green & Red
-                        hoverOffset: 4
-                    }]
-                },
-                options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+            processedFlats.forEach(flat => {
+                let isSold = flat.status.toLowerCase().includes('sold') || flat.status === 'विक्री झाली';
+                let block = document.createElement('div');
+                block.className = `flat-block ${isSold ? 'status-Sold' : 'status-Available'}`;
+                
+                block.innerHTML = `
+                    <span class="flat-label">FLAT</span>
+                    <span class="text-xl">${flat.flatNo}</span>
+                    <div class="tooltip">
+                        <div class="font-bold text-lg mb-1 border-b border-slate-600 pb-1">फ्लॅट क्र. ${flat.flatNo}</div>
+                        <div><b>स्थिती:</b> ${isSold ? '<span class="text-green-400">विक्री झाली</span>' : '<span class="text-amber-400">उपलब्ध</span>'}</div>
+                        ${isSold ? `<div><b>ग्राहक:</b> ${flat.customer}</div>` : ''}
+                        <div><b>ठरलेली किंमत:</b> ${formatMoney(flat.totalValue)}</div>
+                        ${isSold ? `
+                        <div><b>जमा रक्कम:</b> <span class="text-green-400">${formatMoney(flat.collectedForFlat)}</span></div>
+                        <div><b>बाकी:</b> <span class="text-red-400">${formatMoney(flat.pending)}</span></div>
+                        ` : ''}
+                    </div>
+                `;
+                container.appendChild(block);
             });
         }
 
-        // 4. Submit Data to Google Sheet
-        async function submitData(event, type) {
-            event.preventDefault(); // Prevent page reload
+        // 7. Render Master Searchable Table
+        function renderMasterTable() {
+            const tbody = document.getElementById('master-table-body');
+            tbody.innerHTML = '';
             
-            // Show loading alert
-            Swal.fire({ title: 'Saving Data...', text: 'Please wait', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
+            processedFlats.forEach(f => {
+                let isSold = f.status.toLowerCase().includes('sold') || f.status === 'विक्री झाली';
+                let tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition";
+                tr.innerHTML = `
+                    <td class="p-4 font-bold text-slate-800">${f.flatNo}</td>
+                    <td class="p-4"><span class="px-3 py-1 rounded-full text-sm font-bold ${isSold ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}">${isSold ? 'विक्री झाली' : 'उपलब्ध'}</span></td>
+                    <td class="p-4 font-semibold">${isSold ? f.customer : '-'}</td>
+                    <td class="p-4 text-right font-bold text-slate-700">${formatMoney(f.totalValue)}</td>
+                    <td class="p-4 text-right font-bold text-green-600">${isSold ? formatMoney(f.collectedForFlat) : '-'}</td>
+                    <td class="p-4 text-right font-bold text-red-500">${isSold ? formatMoney(f.pending) : '-'}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // 8. Search Functionality
+        function searchTable() {
+            let input = document.getElementById("searchInput").value.toUpperCase();
+            let table = document.getElementById("masterTable");
+            let tr = table.getElementsByTagName("tr");
+
+            for (let i = 1; i < tr.length; i++) {
+                let tdFlat = tr[i].getElementsByTagName("td")[0];
+                let tdName = tr[i].getElementsByTagName("td")[2];
+                if (tdFlat || tdName) {
+                    let txtValueFlat = tdFlat.textContent || tdFlat.innerText;
+                    let txtValueName = tdName.textContent || tdName.innerText;
+                    if (txtValueFlat.toUpperCase().indexOf(input) > -1 || txtValueName.toUpperCase().indexOf(input) > -1) {
+                        tr[i].style.display = "";
+                    } else {
+                        tr[i].style.display = "none";
+                    }
+                }
+            }
+        }
+
+        // 9. Render Charts using Chart.js
+        function renderCharts(sold, avail, income, expenses) {
+            // Chart 1: Flat Status
+            if(charts.sales) charts.sales.destroy();
+            charts.sales = new Chart(document.getElementById('salesChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['विक्री झाली', 'उपलब्ध'],
+                    datasets: [{ data: [sold, avail], backgroundColor: ['#10b981', '#f59e0b'], borderWidth: 0, hoverOffset: 5 }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+            });
+
+            // Chart 2: Cash Flow (Income vs Expense)
+            if(charts.cashflow) charts.cashflow.destroy();
+            charts.cashflow = new Chart(document.getElementById('cashFlowChart'), {
+                type: 'bar',
+                data: {
+                    labels: ['आर्थिक स्थिती'],
+                    datasets: [
+                        { label: 'एकूण उत्पन्न', data: [income], backgroundColor: '#3498db', borderRadius: 8 },
+                        { label: 'एकूण खर्च', data: [expenses], backgroundColor: '#ef4444', borderRadius: 8 }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } }, plugins: { legend: { position: 'bottom' } } }
+            });
+        }
+
+        // 10. Deep-Dive Modals (Popups) Logic
+        function openModal(type) {
+            const modal = document.getElementById('detailsModal');
+            const thead = document.getElementById('modal-thead');
+            const tbody = document.getElementById('modal-tbody');
+            
+            thead.innerHTML = ''; tbody.innerHTML = '';
+            let title = "";
+
+            if (type === 'expense') {
+                title = "सविस्तर खर्च रिपोर्ट";
+                thead.innerHTML = `<tr><th class="p-3">तारीख</th><th class="p-3">प्रकार</th><th class="p-3">तपशील</th><th class="p-3 text-right">रक्कम</th></tr>`;
+                
+                let sortedExp = [...systemData.expenses].reverse(); // latest first
+                sortedExp.forEach(r => {
+                    let d = new Date(r[0]).toLocaleDateString('en-GB');
+                    tbody.innerHTML += `<tr><td class="p-3 border-b">${d}</td><td class="p-3 border-b font-semibold text-blue-600">${r[1]}</td><td class="p-3 border-b">${r[2]}</td><td class="p-3 border-b text-right font-bold text-red-500">${formatMoney(r[3])}</td></tr>`;
+                });
+            } 
+            else if (type === 'income') {
+                title = "सविस्तर उत्पन्न (पेमेंट) रिपोर्ट";
+                thead.innerHTML = `<tr><th class="p-3">तारीख</th><th class="p-3">फ्लॅट</th><th class="p-3">ग्राहक</th><th class="p-3">प्रकार</th><th class="p-3 text-right">रक्कम</th></tr>`;
+                
+                let sortedInc = [...systemData.income].reverse();
+                sortedInc.forEach(r => {
+                    let d = new Date(r[0]).toLocaleDateString('en-GB');
+                    tbody.innerHTML += `<tr><td class="p-3 border-b">${d}</td><td class="p-3 border-b font-bold">${r[2] || '-'}</td><td class="p-3 border-b">${r[3]}</td><td class="p-3 border-b text-sm">${r[1]}</td><td class="p-3 border-b text-right font-bold text-green-600">${formatMoney(r[4])}</td></tr>`;
+                });
+            }
+            else if (type === 'pending' || type === 'sold' || type === 'available' || type === 'flats') {
+                title = type === 'pending' ? "बाकी रक्कम रिपोर्ट" : type === 'sold' ? "विक्री झालेल्या फ्लॅट्सची यादी" : type === 'available' ? "उपलब्ध फ्लॅट्स" : "संपूर्ण प्रोजेक्ट व्हॅल्यू रिपोर्ट";
+                thead.innerHTML = `<tr><th class="p-3">फ्लॅट</th><th class="p-3">ग्राहक</th><th class="p-3 text-right">किंमत</th><th class="p-3 text-right">जमा</th><th class="p-3 text-right">बाकी</th></tr>`;
+                
+                processedFlats.forEach(f => {
+                    let show = false;
+                    if(type === 'flats') show = true;
+                    if(type === 'sold' && (f.status.toLowerCase().includes('sold') || f.status === 'विक्री झाली')) show = true;
+                    if(type === 'available' && !(f.status.toLowerCase().includes('sold') || f.status === 'विक्री झाली')) show = true;
+                    if(type === 'pending' && f.pending > 0 && (f.status.toLowerCase().includes('sold') || f.status === 'विक्री झाली')) show = true;
+
+                    if(show) {
+                        tbody.innerHTML += `<tr><td class="p-3 border-b font-bold">${f.flatNo}</td><td class="p-3 border-b">${f.customer}</td><td class="p-3 border-b text-right font-semibold">${formatMoney(f.totalValue)}</td><td class="p-3 border-b text-right text-green-600 font-bold">${formatMoney(f.collectedForFlat)}</td><td class="p-3 border-b text-right text-red-500 font-bold">${formatMoney(f.pending)}</td></tr>`;
+                    }
+                });
+            }
+
+            if(tbody.innerHTML === '') {
+                tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-slate-500 font-bold">कोणतीही माहिती उपलब्ध नाही.</td></tr>`;
+            }
+
+            document.getElementById('modal-title').innerText = title;
+            modal.style.display = 'flex';
+        }
+
+        function closeModal() { document.getElementById('detailsModal').style.display = 'none'; }
+        
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            if (event.target == document.getElementById('detailsModal')) closeModal();
+        }
+
+        // 11. Form Submission (POST to API)
+        async function submitData(event, type) {
+            event.preventDefault(); 
+            Swal.fire({ title: 'माहिती सेव्ह होत आहे...', html: 'कृपया प्रतीक्षा करा', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
 
             let payload = {};
-
             if(type === 'income') {
                 payload = {
-                    type: "income",
-                    date: document.getElementById('inc-date').value,
-                    category: document.getElementById('inc-category').value,
-                    flatNo: document.getElementById('inc-flat').value,
-                    customer: document.getElementById('inc-customer').value,
-                    amount: document.getElementById('inc-amount').value
+                    type: "income", date: document.getElementById('inc-date').value,
+                    category: document.getElementById('inc-category').value, flatNo: document.getElementById('inc-flat').value,
+                    customer: document.getElementById('inc-customer').value, amount: document.getElementById('inc-amount').value
                 };
             } else if (type === 'expense') {
                 payload = {
-                    type: "expense",
-                    date: document.getElementById('exp-date').value,
-                    category: document.getElementById('exp-category').value,
-                    description: document.getElementById('exp-desc').value,
+                    type: "expense", date: document.getElementById('exp-date').value,
+                    category: document.getElementById('exp-category').value, description: document.getElementById('exp-desc').value,
                     amount: document.getElementById('exp-amount').value
                 };
             }
 
             try {
-                await fetch(API_URL, {
-                    method: 'POST',
-                    mode: 'no-cors', // Important to avoid CORS block from Google
-                    body: JSON.stringify(payload)
-                });
-                
-                // Show Success Message
-                Swal.fire("Success!", "Data saved successfully to Google Sheet!", "success").then(() => {
-                    // Reset Form and reload page to fetch new data
+                await fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
+                Swal.fire({ icon: 'success', title: 'यशस्वी!', text: 'माहिती सुरक्षितपणे सेव्ह झाली.', confirmButtonColor: '#10b981' })
+                .then(() => {
                     document.getElementById(type + '-form').reset();
-                    location.reload(); 
+                    document.getElementById('inc-date').valueAsDate = new Date();
+                    document.getElementById('exp-date').valueAsDate = new Date();
+                    // Reload data
+                    document.getElementById('loader').style.display = 'flex';
+                    fetchData();
+                    switchTab('dashboard'); // Go back to dashboard
                 });
-
             } catch (error) {
-                Swal.fire("Error!", "Failed to save data.", "error");
+                Swal.fire('त्रुटी!', 'माहिती सेव्ह करण्यात अडचण आली.', 'error');
             }
-        }
-
-        // 5. Navigation Logic (Switching Tabs)
-        function showSection(sectionId) {
-            const sections = document.querySelectorAll('.section');
-            sections.forEach(sec => sec.classList.add('hidden-section'));
-            document.getElementById(sectionId).classList.remove('hidden-section');
-        }
-
-        function toggleMobileMenu() {
-            document.getElementById('mobile-menu').classList.toggle('hidden');
         }
     </script>
 </body>
